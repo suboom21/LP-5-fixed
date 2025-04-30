@@ -1,0 +1,59 @@
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+
+vocab_size = 10000
+max_length = 200
+
+# Load CSV
+data = pd.read_csv('IMDB Dataset.csv')
+texts = data['review'].values
+labels = data['sentiment'].values
+
+# Fix labels (very important!)
+# If already 0/1 integers
+try:
+    labels = labels.astype(int)
+except:
+    # Else if labels are text
+    labels = np.array([1 if label == 'positive' else 0 for label in labels])
+
+# Tokenize texts
+tokenizer = keras.preprocessing.text.Tokenizer(num_words=vocab_size, oov_token="<OOV>")
+tokenizer.fit_on_texts(texts)
+sequences = tokenizer.texts_to_sequences(texts)
+
+# Pad sequences
+padded_sequences = keras.preprocessing.sequence.pad_sequences(sequences, maxlen=max_length, padding='post')
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(padded_sequences, labels, test_size=0.2, random_state=42)
+
+# Model
+model = keras.Sequential([
+    layers.Embedding(input_dim=vocab_size, output_dim=64),
+    layers.Conv1D(32, 5, activation='relu'),
+    layers.GlobalMaxPooling1D(),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+history = model.fit(X_train, y_train, epochs=5, validation_data=(X_test, y_test), batch_size=64, verbose=1)
+
+loss, accuracy = model.evaluate(X_test, y_test)
+print(f"Test Accuracy: {accuracy:.4f}")
+print(f"Test Loss: {loss:.4f}")
+
+plt.plot(history.history['accuracy'], label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.title('Training and Validation Accuracy')
+plt.show()

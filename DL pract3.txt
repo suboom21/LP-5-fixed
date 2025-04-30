@@ -1,0 +1,55 @@
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+train_df = pd.read_csv('fashion-mnist_train.csv')
+test_df = pd.read_csv('fashion-mnist_test.csv')
+
+train_df.head(2)
+
+test_df.head(2)
+
+X_train = train_df.iloc[:, 1:].values
+y_train = train_df.iloc[:,0].values
+
+X_test = test_df.iloc[:, 1:].values
+y_test = test_df.iloc[:,0].values
+
+X_train = X_train / 255.0
+X_test = X_test / 255.0
+
+X_train = X_train.reshape(-1,28,28,1)
+X_test = X_test.reshape(-1,28,28,1)
+
+model = models.Sequential([
+    layers.Conv2D(32, (3,3), activation='relu', input_shape=(28,28,1)),
+    layers.MaxPooling2D(2,2),
+    layers.Conv2D(64, (3,3), activation='relu'),
+    layers.MaxPooling2D(2,2),
+    layers.Flatten(),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(10, activation='softmax')
+])
+
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+model.fit(X_train, y_train, epochs=5, validation_split=0.1)
+
+loss,acc =model.evaluate(X_test, y_test)
+print(f"\nTest Accuracy: {acc}")
+
+import matplotlib.pyplot as plt
+class_names = ['T-shirt/top','Trouser','Pullover','Dress','Coat','Sandal','Shirt','sneaker','Bag','Ankle boot']
+plt.figure(figsize=(10,10))
+for i in range(25):
+  plt.subplot(5,5,i+1)
+  plt.xticks([])
+  plt.yticks([])
+  plt.grid(False)
+  plt.imshow(X_train[i], cmap=plt.cm.binary)
+  plt.xlabel(class_names[y_train[i]])
+  plt.show()
+
